@@ -35,7 +35,7 @@ class ActiveWorkoutViewModel(templateId: String) : ViewModel() {
 
     private val templateName = FakeRepository.templateById(templateId)?.name ?: "Treino"
 
-    private val _exercises = MutableStateFlow(FakeRepository.activeExercises)
+    private val _exercises = MutableStateFlow(FakeRepository.activeExercisesFor(templateId))
     private val _elapsedSeconds = MutableStateFlow(0)
     private val _rest = MutableStateFlow<RestState?>(null)
 
@@ -164,11 +164,6 @@ class ActiveWorkoutViewModel(templateId: String) : ViewModel() {
         fun factory(templateId: String): ViewModelProvider.Factory = viewModelFactory {
             initializer { ActiveWorkoutViewModel(templateId) }
         }
-
-        /** 60.0 -> "60"; 62.5 -> "62,5" (vírgula, como se escreve em pt-BR). */
-        fun formatWeight(value: Double): String =
-            if (value % 1.0 == 0.0) value.toInt().toString()
-            else value.toString().replace('.', ',')
 
         internal fun formatElapsed(totalSeconds: Int): String {
             val hours = totalSeconds / 3600

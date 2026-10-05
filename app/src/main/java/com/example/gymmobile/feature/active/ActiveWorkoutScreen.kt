@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.gymmobile.data.ActiveExercise
+import com.example.gymmobile.data.formatWeight
 import com.example.gymmobile.ui.components.PrimaryButton
 import com.example.gymmobile.ui.components.SectionLabel
 import com.example.gymmobile.ui.components.SquareIconButton
@@ -168,7 +169,7 @@ private fun ExerciseCard(
                 )
                 SetNumberField(
                     fieldKey = "${exercise.name}-$setIndex-kg",
-                    initial = ActiveWorkoutViewModel.formatWeight(set.weight),
+                    initial = formatWeight(set.weight),
                     onValueChange = { raw -> onWeightChange(setIndex, raw) },
                     modifier = Modifier.weight(1f),
                 )

@@ -1,7 +1,7 @@
 package com.example.gymmobile.feature.workouts
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,18 +16,22 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.gymmobile.data.WorkoutTemplate
+import com.example.gymmobile.ui.components.ConfirmRemoveDialog
 import com.example.gymmobile.ui.components.GhostButton
 import com.example.gymmobile.ui.components.SquareIconButton
 import com.example.gymmobile.ui.theme.GymColors
@@ -38,11 +42,13 @@ import com.example.gymmobile.ui.theme.GymType
 @Composable
 fun WorkoutsScreen(
     onOpenTemplate: (String) -> Unit,
-    onEditTemplate: () -> Unit,
+    onStartTemplate: (String) -> Unit,
     onCreate: () -> Unit,
     viewModel: WorkoutsViewModel = viewModel(),
 ) {
-    val templates by viewModel.templates.collectAsStateWithLifecycle()
+    val templates = viewModel.templates
+    // Treino esperando confirmação de remoção; `null` = diálogo fechado.
+    var pendingRemoval by remember { mutableStateOf<WorkoutTemplate?>(null) }
 
     LazyColumn(
         modifier = Modifier
@@ -55,14 +61,31 @@ fun WorkoutsScreen(
             Text(
                 text = "Meus treinos",
                 style = GymType.display19,
-                modifier = Modifier.padding(top = 6.dp, bottom = 18.dp),
+                modifier = Modifier.padding(top = 6.dp),
             )
+            Text(
+                text = "Toque num treino para ver os detalhes",
+                style = GymType.body12.copy(color = GymColors.TextMuted),
+                modifier = Modifier.padding(top = 2.dp, bottom = 18.dp),
+            )
+        }
+        if (templates.isEmpty()) {
+            item {
+                Text(
+                    text = "Nenhum treino ainda. Crie o primeiro abaixo.",
+                    style = GymType.body13.copy(color = GymColors.TextMuted),
+                    modifier = Modifier.padding(bottom = 16.dp),
+                )
+            }
         }
         items(items = templates, key = { it.id }) { template ->
             TemplateCard(
                 template = template,
-                onEdit = onEditTemplate,
-                onPlay = { onOpenTemplate(template.id) },
+                muscleGroups = viewModel.muscleGroupsOf(template),
+                exerciseCount = viewModel.exerciseCountOf(template),
+                onClick = { onOpenTemplate(template.id) },
+                onRemove = { pendingRemoval = template },
+                onPlay = { onStartTemplate(template.id) },
             )
             Spacer(Modifier.height(10.dp))
         }
@@ -71,54 +94,72 @@ fun WorkoutsScreen(
             GhostButton(text = "Novo treino", onClick = onCreate, icon = Icons.Filled.Add)
         }
     }
+
+    pendingRemoval?.let { template ->
+        ConfirmRemoveDialog(
+            title = "Remover ${template.name}?",
+            message = "O treino sai da lista. Os exercícios e o histórico de cargas continuam em Progresso.",
+            onConfirm = {
+                viewModel.remove(template)
+                pendingRemoval = null
+            },
+            onDismiss = { pendingRemoval = null },
+        )
+    }
 }
 
-/** `.template-card`. */
+/** `.template-card`, agora um `Card` clicável que abre o detalhe. */
 @Composable
 private fun TemplateCard(
     template: WorkoutTemplate,
-    onEdit: () -> Unit,
+    muscleGroups: String,
+    exerciseCount: Int,
+    onClick: () -> Unit,
+    onRemove: () -> Unit,
     onPlay: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(GymShape.card)
-            .background(GymColors.Surface)
-            .border(0.5.dp, GymColors.BorderColor, GymShape.card)
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = GymShape.card,
+        colors = CardDefaults.cardColors(containerColor = GymColors.Surface),
+        border = BorderStroke(0.5.dp, GymColors.BorderColor),
     ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
-            Text(text = template.name, style = GymType.display16)
-            Text(
-                text = template.tag,
-                style = GymType.body12.copy(color = GymColors.TextSecondary),
-                modifier = Modifier.padding(top = 2.dp),
-            )
-            Text(
-                text = "${template.exerciseCount} exercícios",
-                style = GymType.mono11.copy(color = GymColors.TextMuted),
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            SquareIconButton(
-                icon = Icons.Outlined.Edit,
-                contentDescription = "Editar ${template.name}",
-                onClick = onEdit,
-                size = 32.dp,
-                shape = GymShape.miniButton,
-                container = GymColors.Surface2,
-            )
-            SquareIconButton(
-                icon = Icons.Filled.PlayArrow,
-                contentDescription = "Iniciar ${template.name}",
-                onClick = onPlay,
-                accent = true,
-                size = 32.dp,
-                shape = GymShape.miniButton,
-            )
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
+                Text(text = template.name, style = GymType.display16)
+                Text(
+                    text = muscleGroups,
+                    style = GymType.body12.copy(color = GymColors.TextSecondary),
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+                Text(
+                    text = if (exerciseCount == 1) "1 exercício" else "$exerciseCount exercícios",
+                    style = GymType.mono11.copy(color = GymColors.TextMuted),
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                SquareIconButton(
+                    icon = Icons.Outlined.Delete,
+                    contentDescription = "Remover ${template.name}",
+                    onClick = onRemove,
+                    size = 32.dp,
+                    shape = GymShape.miniButton,
+                    container = GymColors.Surface2,
+                )
+                SquareIconButton(
+                    icon = Icons.Filled.PlayArrow,
+                    contentDescription = "Iniciar ${template.name}",
+                    onClick = onPlay,
+                    accent = true,
+                    size = 32.dp,
+                    shape = GymShape.miniButton,
+                )
+            }
         }
     }
 }
@@ -127,6 +168,6 @@ private fun TemplateCard(
 @Composable
 private fun WorkoutsScreenPreview() {
     GymTheme {
-        WorkoutsScreen(onOpenTemplate = {}, onEditTemplate = {}, onCreate = {})
+        WorkoutsScreen(onOpenTemplate = {}, onStartTemplate = {}, onCreate = {})
     }
 }

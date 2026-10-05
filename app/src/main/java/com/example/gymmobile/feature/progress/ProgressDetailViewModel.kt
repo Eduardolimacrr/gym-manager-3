@@ -4,44 +4,36 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.gymmobile.data.Exercise
 import com.example.gymmobile.data.FakeRepository
-import com.example.gymmobile.data.HistoryEntry
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import com.example.gymmobile.data.WorkoutTemplate
 
-class ProgressDetailViewModel(exerciseId: String) : ViewModel() {
+class ProgressDetailViewModel(private val exerciseId: String) : ViewModel() {
 
-    data class UiState(
-        val name: String,
-        val pr: String,
-        val bars: List<Int>,
-        val sessions: String,
-        val lastLoad: String,
-        val history: List<HistoryEntry>,
-    )
+    data class LoadErrors(val weight: String? = null, val reps: String? = null) {
+        val isValid: Boolean get() = weight == null && reps == null
+    }
 
-    private val _uiState: MutableStateFlow<UiState>
-    val uiState: StateFlow<UiState>
+    /**
+     * Getters, não cópias: são lidos durante a composição, então registrar uma
+     * carga redesenha recorde, gráfico e histórico na mesma hora.
+     */
+    val exercise: Exercise? get() = FakeRepository.exerciseById(exerciseId)
 
-    init {
-        val exercise = FakeRepository.progressById(exerciseId)
-            ?: FakeRepository.progressExercises.first()
+    /** Os treinos que usam este exercício — dado que vem da outra lista. */
+    val usedIn: List<WorkoutTemplate> get() = FakeRepository.templatesUsing(exerciseId)
 
-        _uiState = MutableStateFlow(
-            UiState(
-                name = exercise.name,
-                pr = exercise.pr,
-                bars = exercise.bars,
-                sessions = FakeRepository.sessionsCount.toString(),
-                // `.val.split(' ')[0]` do protótipo: "80kg × 8" -> "80kg".
-                lastLoad = exercise.history.firstOrNull()
-                    ?.value?.substringBefore(' ')
-                    .orEmpty(),
-                history = exercise.history,
-            )
+    fun registerLoad(rawWeight: String, rawReps: String): LoadErrors {
+        val weight = rawWeight.replace(',', '.').toDoubleOrNull()
+        val reps = rawReps.toIntOrNull()
+        val errors = LoadErrors(
+            weight = if (weight == null || weight <= 0) "Carga inválida" else null,
+            reps = if (reps == null || reps <= 0) "Reps inválidas" else null,
         )
-        uiState = _uiState.asStateFlow()
+        if (weight != null && reps != null && errors.isValid) {
+            FakeRepository.addLoad(exerciseId, weight, reps)
+        }
+        return errors
     }
 
     companion object {

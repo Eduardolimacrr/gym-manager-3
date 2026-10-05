@@ -1,19 +1,25 @@
 package com.example.gymmobile.navigation
 
-object Routes {
+/** Todas as rotas do app, num lugar só. As com `{argumento}` têm uma função que monta o caminho. */
+object Rotas {
+    // Abas da barra inferior
     const val HOME = "home"
     const val WORKOUTS = "workouts"
     const val PROGRESS = "progress"
     const val PROFILE = "profile"
+
+    // Tela cheia, sem barra inferior
     const val CREATE = "create"
 
     const val ARG_TEMPLATE_ID = "templateId"
     const val ARG_EXERCISE_ID = "exerciseId"
 
     const val ACTIVE = "active/{$ARG_TEMPLATE_ID}"
+    const val WORKOUT_DETAIL = "workouts/{$ARG_TEMPLATE_ID}"
     const val PROGRESS_DETAIL = "progress/{$ARG_EXERCISE_ID}"
 
     fun active(templateId: String) = "active/$templateId"
+    fun workoutDetail(templateId: String) = "workouts/$templateId"
     fun progressDetail(exerciseId: String) = "progress/$exerciseId"
 
     /** Rotas que mostram a barra inferior. */

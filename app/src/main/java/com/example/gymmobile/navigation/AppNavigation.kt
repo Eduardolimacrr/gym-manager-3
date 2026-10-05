@@ -19,6 +19,7 @@ import com.example.gymmobile.feature.home.HomeScreen
 import com.example.gymmobile.feature.profile.ProfileScreen
 import com.example.gymmobile.feature.progress.ProgressDetailScreen
 import com.example.gymmobile.feature.progress.ProgressScreen
+import com.example.gymmobile.feature.workouts.WorkoutDetailScreen
 import com.example.gymmobile.feature.workouts.WorkoutsScreen
 import com.example.gymmobile.ui.theme.GymColors
 
@@ -32,67 +33,74 @@ fun GymApp() {
         containerColor = GymColors.Bg,
         bottomBar = {
             // `.bottom-nav.hidden`: some fora das 4 abas.
-            if (currentRoute in Routes.TAB_ROUTES) {
+            if (currentRoute in Rotas.TAB_ROUTES) {
                 GymBottomBar(currentRoute) { navController.navigateToTab(it) }
             }
         },
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Routes.HOME,
+            startDestination = Rotas.HOME,
             modifier = Modifier.padding(innerPadding),
         ) {
-            composable(Routes.HOME) {
+            composable(Rotas.HOME) {
                 HomeScreen(
-                    onStartWorkout = { id -> navController.navigate(Routes.active(id)) },
+                    onStartWorkout = { id -> navController.navigate(Rotas.active(id)) },
                 )
             }
-            composable(Routes.WORKOUTS) {
+            composable(Rotas.WORKOUTS) {
                 WorkoutsScreen(
-                    onOpenTemplate = { id -> navController.navigate(Routes.active(id)) },
-                    onEditTemplate = { navController.navigate(Routes.CREATE) },
-                    onCreate = { navController.navigate(Routes.CREATE) },
+                    onOpenTemplate = { id -> navController.navigate(Rotas.workoutDetail(id)) },
+                    onStartTemplate = { id -> navController.navigate(Rotas.active(id)) },
+                    onCreate = { navController.navigate(Rotas.CREATE) },
                 )
             }
-            composable(Routes.PROGRESS) {
+            composable(Rotas.PROGRESS) {
                 ProgressScreen(
-                    onOpenExercise = { id -> navController.navigate(Routes.progressDetail(id)) },
+                    onOpenExercise = { id -> navController.navigate(Rotas.progressDetail(id)) },
                 )
             }
-            composable(Routes.PROFILE) {
+            composable(Rotas.PROFILE) {
                 ProfileScreen()
             }
-            composable(Routes.CREATE) {
+            composable(Rotas.CREATE) {
                 CreateWorkoutScreen(
                     onBack = { navController.popBackStack() },
-                    onSaved = {
-                        navController.navigate(Routes.WORKOUTS) {
-                            popUpTo(Routes.HOME)
-                            launchSingleTop = true
-                        }
-                    },
+                    onSaved = { navController.popBackStack() },
                 )
             }
             composable(
-                route = Routes.ACTIVE,
-                arguments = listOf(navArgument(Routes.ARG_TEMPLATE_ID) { type = NavType.StringType }),
+                route = Rotas.WORKOUT_DETAIL,
+                arguments = listOf(navArgument(Rotas.ARG_TEMPLATE_ID) { type = NavType.StringType }),
+            ) { entry ->
+                val templateId = entry.arguments?.getString(Rotas.ARG_TEMPLATE_ID).orEmpty()
+                WorkoutDetailScreen(
+                    templateId = templateId,
+                    onBack = { navController.popBackStack() },
+                    onOpenExercise = { id -> navController.navigate(Rotas.progressDetail(id)) },
+                    onStart = { navController.navigate(Rotas.active(templateId)) },
+                )
+            }
+            composable(
+                route = Rotas.ACTIVE,
+                arguments = listOf(navArgument(Rotas.ARG_TEMPLATE_ID) { type = NavType.StringType }),
             ) { entry ->
                 ActiveWorkoutScreen(
-                    templateId = entry.arguments?.getString(Routes.ARG_TEMPLATE_ID).orEmpty(),
+                    templateId = entry.arguments?.getString(Rotas.ARG_TEMPLATE_ID).orEmpty(),
                     onBack = { navController.popBackStack() },
                     onFinish = {
-                        navController.navigate(Routes.HOME) {
-                            popUpTo(Routes.HOME) { inclusive = true }
+                        navController.navigate(Rotas.HOME) {
+                            popUpTo(Rotas.HOME) { inclusive = true }
                         }
                     },
                 )
             }
             composable(
-                route = Routes.PROGRESS_DETAIL,
-                arguments = listOf(navArgument(Routes.ARG_EXERCISE_ID) { type = NavType.StringType }),
+                route = Rotas.PROGRESS_DETAIL,
+                arguments = listOf(navArgument(Rotas.ARG_EXERCISE_ID) { type = NavType.StringType }),
             ) { entry ->
                 ProgressDetailScreen(
-                    exerciseId = entry.arguments?.getString(Routes.ARG_EXERCISE_ID).orEmpty(),
+                    exerciseId = entry.arguments?.getString(Rotas.ARG_EXERCISE_ID).orEmpty(),
                     onBack = { navController.popBackStack() },
                 )
             }

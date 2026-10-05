@@ -23,6 +23,9 @@ object GymColors {
 
     val Chalk = Color(0xFFE9DCC0)
 
+    /** Erro de formulário e ação destrutiva. Não existe no protótipo, que não tinha nenhum dos dois. */
+    val Danger = Color(0xFFE5484D)
+
     /** Texto sobre `Accent` (`.btn-primary` do CSS). */
     val OnAccent = Color(0xFF1A0A04)
 
