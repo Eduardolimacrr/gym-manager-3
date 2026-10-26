@@ -16,16 +16,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.gymmobile.data.Exercise
@@ -33,31 +34,46 @@ import com.example.gymmobile.data.FakeRepository
 import com.example.gymmobile.ui.components.GymTopBar
 import com.example.gymmobile.ui.components.PrimaryButton
 import com.example.gymmobile.ui.components.SectionLabel
+import com.example.gymmobile.ui.components.SquareIconButton
 import com.example.gymmobile.ui.components.StatCard
 import com.example.gymmobile.ui.theme.GymColors
 import com.example.gymmobile.ui.theme.GymShape
-import com.example.gymmobile.ui.theme.GymTheme
 import com.example.gymmobile.ui.theme.GymType
 
 /**
- * Detalhe de um treino. Vai além de reexibir o item: cruza os ids do treino
- * com a lista de exercícios, calcula duração e volume estimados a partir das
- * últimas cargas, e cada exercício abre o próprio detalhe.
+ * Detalhe de um treino, buscado no banco pelo id que veio na rota. Vai além de
+ * reexibir o item: cruza os ids do treino com a tabela de exercícios, calcula
+ * duração e volume estimados a partir das últimas cargas, cada exercício abre o
+ * próprio detalhe e o lápis abre a edição.
  */
 @Composable
 fun WorkoutDetailScreen(
-    templateId: String,
+    templateId: Int,
     onBack: () -> Unit,
-    onOpenExercise: (String) -> Unit,
+    onOpenExercise: (Int) -> Unit,
     onStart: () -> Unit,
+    onEdit: () -> Unit,
     viewModel: WorkoutDetailViewModel = viewModel(
         factory = WorkoutDetailViewModel.factory(templateId)
     ),
 ) {
+    LaunchedEffect(Unit) { viewModel.carregar() }
+    if (!viewModel.loaded) return
     val template = viewModel.template
 
     Scaffold(
-        topBar = { GymTopBar(title = template?.name ?: "Treino", onBack = onBack) },
+        topBar = {
+            GymTopBar(title = template?.name ?: "Treino", onBack = onBack) {
+                if (template != null) {
+                    SquareIconButton(
+                        icon = Icons.Outlined.Edit,
+                        contentDescription = "Editar treino",
+                        onClick = onEdit,
+                        modifier = Modifier.padding(end = 14.dp),
+                    )
+                }
+            }
+        },
         containerColor = GymColors.Bg,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { innerPadding ->
@@ -70,7 +86,7 @@ fun WorkoutDetailScreen(
             return@Scaffold
         }
 
-        val exercises = viewModel.exercisesOf(template)
+        val exercises = viewModel.exercises
         val minutes = WorkoutDetailViewModel.estimatedMinutes(exercises.size)
         val (volume, volumeUnit) = WorkoutDetailViewModel.formatVolume(
             WorkoutDetailViewModel.estimatedVolumeKg(exercises)
@@ -82,7 +98,7 @@ fun WorkoutDetailScreen(
         ) {
             item {
                 Text(
-                    text = viewModel.muscleGroupsOf(template),
+                    text = viewModel.muscleGroups(),
                     style = GymType.body13.copy(color = GymColors.TextSecondary),
                     modifier = Modifier.padding(bottom = 16.dp),
                 )
@@ -170,13 +186,5 @@ private fun ExerciseRow(exercise: Exercise, onClick: () -> Unit) {
                 modifier = Modifier.padding(start = 6.dp).size(18.dp),
             )
         }
-    }
-}
-
-@Preview(widthDp = 390, heightDp = 760)
-@Composable
-private fun WorkoutDetailScreenPreview() {
-    GymTheme {
-        WorkoutDetailScreen(templateId = "push-a", onBack = {}, onOpenExercise = {}, onStart = {})
     }
 }

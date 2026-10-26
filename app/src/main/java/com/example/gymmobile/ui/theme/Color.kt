@@ -7,7 +7,6 @@ object GymColors {
     val Bg = Color(0xFF0E0F13)
     val Surface = Color(0xFF1C1F26)
     val Surface2 = Color(0xFF242832)
-    val Raised = Color(0xFF2A2E38)
     val BorderColor = Color(0xFF31353F)
 
     val TextPrimary = Color(0xFFF2F1ED)

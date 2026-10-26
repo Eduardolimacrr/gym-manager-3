@@ -1,17 +1,14 @@
 package com.example.gymmobile.data
 
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import java.util.Calendar
 
 /**
- * Fonte de dados única do app, em memória.
+ * Dados fixos do app e as regras que cruzam as duas tabelas.
  *
- * É um `object` para que o estado sobreviva à troca de telas: um treino
- * salvo em Novo treino precisa aparecer imediatamente em Meus treinos, e uma
- * carga registrada no detalhe do exercício precisa mudar o volume do treino
- * que o usa. As duas listas são `mutableStateListOf`: qualquer tela que as lê
- * é redesenhada quando um item entra, sai ou é trocado.
+ * Treinos e exercícios agora moram no banco Room (`AppDatabase`); daqui saem
+ * só os exemplos com que o banco nasce na primeira abertura (`seed*`), os
+ * textos fixos de perfil e Home, e funções puras que recebem as listas já
+ * buscadas do banco.
  */
 object FakeRepository {
 
@@ -24,12 +21,6 @@ object FakeRepository {
     // ----- home -----
     const val streakDays = 4
     const val weekVolume = "12,4"
-    const val todayTag = "Push · dia 3"
-    const val todayTitle = "Peito, ombro e tríceps"
-    const val todaySubtitle = "5 exercícios · ~25 min"
-
-    /** Template aberto pelo botão "Iniciar treino" da Home. */
-    const val todayTemplateId = "push-a"
 
     val recentWorkouts = listOf(
         WorkoutSummary("Pull B", "seg", "48min"),
@@ -37,12 +28,14 @@ object FakeRepository {
         WorkoutSummary("Push A", "qui", "51min"),
     )
 
-    // ----- exercícios (lista de Progresso) -----
+    // ----- exercícios -----
     val muscleGroups = listOf("Peito", "Costas", "Ombro", "Bíceps", "Tríceps", "Pernas", "Posterior", "Core")
 
-    val exercises: SnapshotStateList<Exercise> = mutableStateListOf(
+    // ----- exemplos com que o banco nasce (tabela `exercicios`) -----
+    /** Ids fixos para que `seedTemplates` possa apontar para eles. */
+    val seedExercises = listOf(
         Exercise(
-            "supino-reto", "Supino reto", "Peito",
+            1, "Supino reto", "Peito",
             listOf(
                 LoadEntry("18 ago", 80.0, 8),
                 LoadEntry("14 ago", 75.0, 10),
@@ -52,18 +45,18 @@ object FakeRepository {
                 LoadEntry("21 jul", 45.0, 12),
             ),
         ),
-        Exercise("supino-inclinado", "Supino inclinado", "Peito", listOf(LoadEntry("12 ago", 50.0, 10))),
+        Exercise(2, "Supino inclinado", "Peito", listOf(LoadEntry("12 ago", 50.0, 10))),
         Exercise(
-            "desenvolvimento-halteres", "Desenvolvimento halteres", "Ombro",
+            3, "Desenvolvimento halteres", "Ombro",
             listOf(LoadEntry("18 ago", 18.0, 12), LoadEntry("14 ago", 16.0, 12)),
         ),
-        Exercise("elevacao-lateral", "Elevação lateral", "Ombro", listOf(LoadEntry("18 ago", 8.0, 15))),
-        Exercise("triceps-corda", "Tríceps corda", "Tríceps", listOf(LoadEntry("18 ago", 25.0, 12))),
-        Exercise("puxada-frente", "Puxada frente", "Costas", listOf(LoadEntry("16 ago", 60.0, 10))),
-        Exercise("remada-curvada", "Remada curvada", "Costas", listOf(LoadEntry("16 ago", 50.0, 10))),
-        Exercise("rosca-direta", "Rosca direta", "Bíceps", listOf(LoadEntry("16 ago", 30.0, 10))),
+        Exercise(4, "Elevação lateral", "Ombro", listOf(LoadEntry("18 ago", 8.0, 15))),
+        Exercise(5, "Tríceps corda", "Tríceps", listOf(LoadEntry("18 ago", 25.0, 12))),
+        Exercise(6, "Puxada frente", "Costas", listOf(LoadEntry("16 ago", 60.0, 10))),
+        Exercise(7, "Remada curvada", "Costas", listOf(LoadEntry("16 ago", 50.0, 10))),
+        Exercise(8, "Rosca direta", "Bíceps", listOf(LoadEntry("16 ago", 30.0, 10))),
         Exercise(
-            "agachamento-livre", "Agachamento livre", "Pernas",
+            9, "Agachamento livre", "Pernas",
             listOf(
                 LoadEntry("17 ago", 110.0, 6),
                 LoadEntry("12 ago", 100.0, 8),
@@ -73,10 +66,10 @@ object FakeRepository {
                 LoadEntry("15 jul", 60.0, 10),
             ),
         ),
-        Exercise("leg-press", "Leg press", "Pernas"),
-        Exercise("cadeira-extensora", "Cadeira extensora", "Pernas"),
+        Exercise(10, "Leg press", "Pernas"),
+        Exercise(11, "Cadeira extensora", "Pernas"),
         Exercise(
-            "levantamento-terra", "Levantamento terra", "Posterior",
+            12, "Levantamento terra", "Posterior",
             listOf(
                 LoadEntry("15 ago", 140.0, 4),
                 LoadEntry("8 ago", 130.0, 5),
@@ -88,104 +81,44 @@ object FakeRepository {
         ),
     )
 
-    fun exerciseById(id: String): Exercise? = exercises.firstOrNull { it.id == id }
-
-    /** `weight`/`reps` nulos = exercício entra sem nenhuma carga registrada. */
-    fun addExercise(name: String, muscleGroup: String, weight: Double?, reps: Int?) {
-        val firstLoad = if (weight != null && reps != null) LoadEntry(todayLabel(), weight, reps) else null
-        exercises += Exercise(
-            id = "exercise-${System.currentTimeMillis()}",
-            name = name.trim(),
-            muscleGroup = muscleGroup,
-            history = listOfNotNull(firstLoad),
-        )
-    }
-
-    /** Remove o exercício e também o tira dos treinos que o usavam. */
-    fun removeExercise(id: String) {
-        exercises.removeAll { it.id == id }
-        for (index in templates.indices) {
-            val template = templates[index]
-            if (id in template.exerciseIds) {
-                templates[index] = template.copy(exerciseIds = template.exerciseIds - id)
-            }
-        }
-    }
-
-    /** Registra uma carga com a data de hoje no topo do histórico. */
-    fun addLoad(exerciseId: String, weight: Double, reps: Int) {
-        val index = exercises.indexOfFirst { it.id == exerciseId }
-        if (index == -1) return
-        val exercise = exercises[index]
-        exercises[index] = exercise.copy(
-            history = listOf(LoadEntry(todayLabel(), weight, reps)) + exercise.history
-        )
-    }
-
-    // ----- treinos (lista de Meus treinos) -----
-    val templates: SnapshotStateList<WorkoutTemplate> = mutableStateListOf(
-        WorkoutTemplate(
-            "push-a", "Push A",
-            listOf("supino-reto", "supino-inclinado", "desenvolvimento-halteres", "elevacao-lateral", "triceps-corda"),
-        ),
-        WorkoutTemplate("pull-b", "Pull B", listOf("puxada-frente", "remada-curvada", "rosca-direta")),
-        WorkoutTemplate(
-            "legs", "Legs",
-            listOf("agachamento-livre", "leg-press", "cadeira-extensora", "levantamento-terra"),
-            notes = "Aquecer 10 min na bike antes do agachamento.",
-        ),
-        WorkoutTemplate(
-            "full-body", "Full body",
-            listOf("supino-reto", "agachamento-livre", "remada-curvada", "desenvolvimento-halteres", "levantamento-terra"),
-        ),
+    // ----- exemplos com que o banco nasce (tabela `treinos`) -----
+    val seedTemplates = listOf(
+        // Supino reto, Supino inclinado, Desenvolvimento, Elevação lateral, Tríceps corda
+        WorkoutTemplate(1, "Push A", listOf(1, 2, 3, 4, 5)),
+        // Puxada frente, Remada curvada, Rosca direta
+        WorkoutTemplate(2, "Pull B", listOf(6, 7, 8)),
+        // Agachamento, Leg press, Cadeira extensora, Terra
+        WorkoutTemplate(3, "Legs", listOf(9, 10, 11, 12), notes = "Aquecer 10 min na bike antes do agachamento."),
+        // Supino reto, Agachamento, Remada curvada, Desenvolvimento, Terra
+        WorkoutTemplate(4, "Full body", listOf(1, 9, 7, 3, 12)),
     )
 
-    fun templateById(id: String): WorkoutTemplate? = templates.firstOrNull { it.id == id }
-
-    /** Nome em branco vira "Treino sem nome", como no `saveWorkout()` do protótipo. */
-    fun addTemplate(name: String, exerciseIds: List<String>, notes: String) {
-        templates += WorkoutTemplate(
-            id = "custom-${System.currentTimeMillis()}",
-            name = name.trim().ifBlank { "Treino sem nome" },
-            exerciseIds = exerciseIds,
-            notes = notes.trim(),
-        )
-    }
-
-    fun removeTemplate(id: String) {
-        templates.removeAll { it.id == id }
-    }
-
-    /** Junta as duas listas: os exercícios de um treino, na ordem em que foram escolhidos. */
-    fun exercisesOf(template: WorkoutTemplate): List<Exercise> =
-        template.exerciseIds.mapNotNull(::exerciseById)
+    // ----- regras que cruzam as duas tabelas -----
+    /** Junta as duas tabelas: os exercícios de um treino, na ordem em que foram escolhidos. */
+    fun exercisesOf(template: WorkoutTemplate, allExercises: List<Exercise>): List<Exercise> =
+        template.exerciseIds.mapNotNull { id -> allExercises.firstOrNull { it.id == id } }
 
     /** `Peito · Ombro · Tríceps`: grupos musculares distintos, na ordem dos exercícios. */
-    fun muscleGroupsOf(template: WorkoutTemplate): String =
-        exercisesOf(template).map { it.muscleGroup }.distinct().joinToString(" · ")
+    fun muscleGroupsOf(exercises: List<Exercise>): String =
+        exercises.map { it.muscleGroup }.distinct().joinToString(" · ")
             .ifEmpty { "Sem exercícios" }
-
-    fun templatesUsing(exerciseId: String): List<WorkoutTemplate> =
-        templates.filter { exerciseId in it.exerciseIds }
 
     // ----- treino ativo -----
     const val SETS_PER_EXERCISE = 3
 
     /** Cada exercício do treino entra com três séries repetindo a última carga registrada. */
-    fun activeExercisesFor(templateId: String): List<ActiveExercise> {
-        val template = templateById(templateId) ?: return emptyList()
-        return exercisesOf(template).map { exercise ->
+    fun activeExercisesFor(exercises: List<Exercise>): List<ActiveExercise> =
+        exercises.map { exercise ->
             val last = exercise.lastLoad
             val set = ExerciseSet(weight = last?.weight ?: 0.0, reps = last?.reps ?: 10)
             ActiveExercise(exercise.name, List(SETS_PER_EXERCISE) { set })
         }
-    }
 
     private val monthLabels =
         listOf("jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez")
 
     /** Hoje no formato do histórico: `5 out`. */
-    private fun todayLabel(): String {
+    fun todayLabel(): String {
         val now = Calendar.getInstance()
         return "${now.get(Calendar.DAY_OF_MONTH)} ${monthLabels[now.get(Calendar.MONTH)]}"
     }

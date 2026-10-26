@@ -21,13 +21,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.gymmobile.data.WorkoutTemplate
@@ -36,19 +36,20 @@ import com.example.gymmobile.ui.components.GhostButton
 import com.example.gymmobile.ui.components.SquareIconButton
 import com.example.gymmobile.ui.theme.GymColors
 import com.example.gymmobile.ui.theme.GymShape
-import com.example.gymmobile.ui.theme.GymTheme
 import com.example.gymmobile.ui.theme.GymType
 
 @Composable
 fun WorkoutsScreen(
-    onOpenTemplate: (String) -> Unit,
-    onStartTemplate: (String) -> Unit,
+    onOpenTemplate: (Int) -> Unit,
+    onStartTemplate: (Int) -> Unit,
     onCreate: () -> Unit,
     viewModel: WorkoutsViewModel = viewModel(),
 ) {
-    val templates = viewModel.templates
     // Treino esperando confirmação de remoção; `null` = diálogo fechado.
     var pendingRemoval by remember { mutableStateOf<WorkoutTemplate?>(null) }
+
+    LaunchedEffect(Unit) { viewModel.carregar() }
+    val templates = viewModel.templates ?: return
 
     LazyColumn(
         modifier = Modifier
@@ -161,13 +162,5 @@ private fun TemplateCard(
                 )
             }
         }
-    }
-}
-
-@Preview(widthDp = 390, heightDp = 760)
-@Composable
-private fun WorkoutsScreenPreview() {
-    GymTheme {
-        WorkoutsScreen(onOpenTemplate = {}, onStartTemplate = {}, onCreate = {})
     }
 }

@@ -17,10 +17,12 @@ object Rotas {
     const val ACTIVE = "active/{$ARG_TEMPLATE_ID}"
     const val WORKOUT_DETAIL = "workouts/{$ARG_TEMPLATE_ID}"
     const val PROGRESS_DETAIL = "progress/{$ARG_EXERCISE_ID}"
+    const val EDIT_WORKOUT = "edit/{$ARG_TEMPLATE_ID}"
 
-    fun active(templateId: String) = "active/$templateId"
-    fun workoutDetail(templateId: String) = "workouts/$templateId"
-    fun progressDetail(exerciseId: String) = "progress/$exerciseId"
+    fun active(templateId: Int) = "active/$templateId"
+    fun workoutDetail(templateId: Int) = "workouts/$templateId"
+    fun progressDetail(exerciseId: Int) = "progress/$exerciseId"
+    fun editWorkout(templateId: Int) = "edit/$templateId"
 
     /** Rotas que mostram a barra inferior. */
     val TAB_ROUTES = listOf(HOME, WORKOUTS, PROGRESS, PROFILE)

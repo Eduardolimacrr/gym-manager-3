@@ -1,32 +1,68 @@
 package com.example.gymmobile.feature.workouts
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.gymmobile.data.AppDatabase
+import com.example.gymmobile.data.DB_TAG
 import com.example.gymmobile.data.Exercise
 import com.example.gymmobile.data.FakeRepository
 import com.example.gymmobile.data.WorkoutTemplate
 import com.example.gymmobile.data.formatWeight
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-class WorkoutDetailViewModel(private val templateId: String) : ViewModel() {
+class WorkoutDetailViewModel(
+    application: Application,
+    private val templateId: Int,
+) : AndroidViewModel(application) {
+
+    private val db = AppDatabase.getDatabase(application)
+
+    /** Separa "ainda buscando" de "buscou e o treino não existe" (`template == null`). */
+    var loaded by mutableStateOf(false)
+        private set
+
+    var template by mutableStateOf<WorkoutTemplate?>(null)
+        private set
+
+    /** Os exercícios do treino, na ordem dele. */
+    var exercises by mutableStateOf<List<Exercise>>(emptyList())
+        private set
 
     /**
-     * Getter, não cópia: é lido durante a composição, então registrar uma
-     * carga no detalhe do exercício e voltar já mostra o volume novo.
+     * A rota traz só o id; o treino vem do banco por `buscarPorId`. Roda toda
+     * vez que a tela abre, então voltar de uma edição ou de um registro de carga
+     * já mostra os dados novos.
      */
-    val template: WorkoutTemplate? get() = FakeRepository.templateById(templateId)
+    suspend fun carregar() {
+        withContext(Dispatchers.IO) {
+            try {
+                val found = db.workoutTemplateDao().buscarPorId(templateId)
+                exercises = found?.let { FakeRepository.exercisesOf(it, db.exerciseDao().buscarTodos()) }.orEmpty()
+                template = found
+            } catch (e: Exception) {
+                Log.e(DB_TAG, "Erro ao buscar o treino $templateId", e)
+            }
+            loaded = true
+        }
+    }
 
-    fun exercisesOf(template: WorkoutTemplate): List<Exercise> = FakeRepository.exercisesOf(template)
-
-    fun muscleGroupsOf(template: WorkoutTemplate): String = FakeRepository.muscleGroupsOf(template)
+    fun muscleGroups(): String = FakeRepository.muscleGroupsOf(exercises)
 
     companion object {
         /** ~40s executando a série + 60s de descanso, o mesmo do Treino ativo. */
         private const val SECONDS_PER_SET = 100
 
-        fun factory(templateId: String): ViewModelProvider.Factory = viewModelFactory {
-            initializer { WorkoutDetailViewModel(templateId) }
+        fun factory(templateId: Int): ViewModelProvider.Factory = viewModelFactory {
+            initializer { WorkoutDetailViewModel(this[APPLICATION_KEY]!!, templateId) }
         }
 
         fun estimatedMinutes(exerciseCount: Int): Int =

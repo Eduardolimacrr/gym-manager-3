@@ -70,23 +70,34 @@ fun GymApp() {
                 )
             }
             composable(
-                route = Rotas.WORKOUT_DETAIL,
-                arguments = listOf(navArgument(Rotas.ARG_TEMPLATE_ID) { type = NavType.StringType }),
+                route = Rotas.EDIT_WORKOUT,
+                arguments = listOf(navArgument(Rotas.ARG_TEMPLATE_ID) { type = NavType.IntType }),
             ) { entry ->
-                val templateId = entry.arguments?.getString(Rotas.ARG_TEMPLATE_ID).orEmpty()
+                CreateWorkoutScreen(
+                    templateId = entry.arguments?.getInt(Rotas.ARG_TEMPLATE_ID) ?: 0,
+                    onBack = { navController.popBackStack() },
+                    onSaved = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = Rotas.WORKOUT_DETAIL,
+                arguments = listOf(navArgument(Rotas.ARG_TEMPLATE_ID) { type = NavType.IntType }),
+            ) { entry ->
+                val templateId = entry.arguments?.getInt(Rotas.ARG_TEMPLATE_ID) ?: 0
                 WorkoutDetailScreen(
                     templateId = templateId,
                     onBack = { navController.popBackStack() },
                     onOpenExercise = { id -> navController.navigate(Rotas.progressDetail(id)) },
                     onStart = { navController.navigate(Rotas.active(templateId)) },
+                    onEdit = { navController.navigate(Rotas.editWorkout(templateId)) },
                 )
             }
             composable(
                 route = Rotas.ACTIVE,
-                arguments = listOf(navArgument(Rotas.ARG_TEMPLATE_ID) { type = NavType.StringType }),
+                arguments = listOf(navArgument(Rotas.ARG_TEMPLATE_ID) { type = NavType.IntType }),
             ) { entry ->
                 ActiveWorkoutScreen(
-                    templateId = entry.arguments?.getString(Rotas.ARG_TEMPLATE_ID).orEmpty(),
+                    templateId = entry.arguments?.getInt(Rotas.ARG_TEMPLATE_ID) ?: 0,
                     onBack = { navController.popBackStack() },
                     onFinish = {
                         navController.navigate(Rotas.HOME) {
@@ -97,10 +108,10 @@ fun GymApp() {
             }
             composable(
                 route = Rotas.PROGRESS_DETAIL,
-                arguments = listOf(navArgument(Rotas.ARG_EXERCISE_ID) { type = NavType.StringType }),
+                arguments = listOf(navArgument(Rotas.ARG_EXERCISE_ID) { type = NavType.IntType }),
             ) { entry ->
                 ProgressDetailScreen(
-                    exerciseId = entry.arguments?.getString(Rotas.ARG_EXERCISE_ID).orEmpty(),
+                    exerciseId = entry.arguments?.getInt(Rotas.ARG_EXERCISE_ID) ?: 0,
                     onBack = { navController.popBackStack() },
                 )
             }

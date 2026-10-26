@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,25 +24,26 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.gymmobile.data.FakeRepository
+import com.example.gymmobile.feature.workouts.WorkoutDetailViewModel
 import com.example.gymmobile.ui.components.HistoryRow
 import com.example.gymmobile.ui.components.PrimaryButton
 import com.example.gymmobile.ui.components.SectionLabel
 import com.example.gymmobile.ui.components.StatCard
 import com.example.gymmobile.ui.theme.GymColors
 import com.example.gymmobile.ui.theme.GymShape
-import com.example.gymmobile.ui.theme.GymTheme
 import com.example.gymmobile.ui.theme.GymType
 
 @Composable
 fun HomeScreen(
-    onStartWorkout: (String) -> Unit,
+    onStartWorkout: (Int) -> Unit,
     viewModel: HomeViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { viewModel.carregar() }
 
     Column(
         modifier = Modifier
@@ -75,14 +77,18 @@ fun HomeScreen(
             )
         }
 
-        Spacer(Modifier.height(20.dp))
-        SectionLabel("Treino de hoje")
-        TodayCard(
-            tag = state.todayTag,
-            title = state.todayTitle,
-            subtitle = state.todaySubtitle,
-            onStart = { onStartWorkout(state.todayTemplateId) },
-        )
+        viewModel.today?.let { template ->
+            val count = viewModel.todayExercises.size
+            Spacer(Modifier.height(20.dp))
+            SectionLabel("Treino de hoje")
+            TodayCard(
+                tag = template.name,
+                title = FakeRepository.muscleGroupsOf(viewModel.todayExercises),
+                subtitle = (if (count == 1) "1 exercício" else "$count exercícios") +
+                    " · ~${WorkoutDetailViewModel.estimatedMinutes(count)} min",
+                onStart = { onStartWorkout(template.id) },
+            )
+        }
 
         Spacer(Modifier.height(22.dp))
         SectionLabel("Últimos treinos")
@@ -137,10 +143,4 @@ private fun TodayCard(
         )
         PrimaryButton(text = "Iniciar treino", onClick = onStart, icon = Icons.Filled.PlayArrow)
     }
-}
-
-@Preview(widthDp = 390, heightDp = 760)
-@Composable
-private fun HomeScreenPreview() {
-    GymTheme { HomeScreen(onStartWorkout = {}) }
 }

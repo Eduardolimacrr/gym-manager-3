@@ -21,7 +21,6 @@ import com.example.gymmobile.ui.theme.GymType
 fun SettingsRow(
     title: String,
     subtitle: String? = null,
-    showDivider: Boolean = true,
     trailing: @Composable () -> Unit,
 ) {
     Column {
@@ -39,8 +38,6 @@ fun SettingsRow(
             }
             trailing()
         }
-        if (showDivider) {
-            HorizontalDivider(thickness = 0.5.dp, color = GymColors.BorderColor)
-        }
+        HorizontalDivider(thickness = 0.5.dp, color = GymColors.BorderColor)
     }
 }

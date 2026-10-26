@@ -1,17 +1,20 @@
 package com.example.gymmobile.data
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import kotlin.math.roundToInt
 
 /**
- * Um treino salvo — item da lista de Meus treinos.
+ * Um treino salvo — item da lista de Meus treinos, uma linha da tabela `treinos`.
  *
  * Guarda só os ids dos exercícios: nome, grupo muscular e cargas vêm da
- * lista de exercícios, para que as duas listas nunca discordem.
+ * tabela de exercícios, para que as duas listas nunca discordem.
  */
+@Entity(tableName = "treinos")
 data class WorkoutTemplate(
-    val id: String,
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
-    val exerciseIds: List<String>,
+    val exerciseIds: List<Int>,
     val notes: String = "",
 )
 
@@ -24,9 +27,13 @@ data class LoadEntry(
     val label: String get() = "${formatWeight(weight)}kg × $reps"
 }
 
-/** Um exercício acompanhado — item da lista de Progresso e catálogo do Novo treino. */
+/**
+ * Um exercício acompanhado — item da lista de Progresso e catálogo do Novo treino,
+ * uma linha da tabela `exercicios`.
+ */
+@Entity(tableName = "exercicios")
 data class Exercise(
-    val id: String,
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
     val muscleGroup: String,
     /** Mais recente primeiro. */

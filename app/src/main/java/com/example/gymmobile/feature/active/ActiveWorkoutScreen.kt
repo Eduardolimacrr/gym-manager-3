@@ -36,7 +36,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -47,12 +46,11 @@ import com.example.gymmobile.ui.components.SectionLabel
 import com.example.gymmobile.ui.components.SquareIconButton
 import com.example.gymmobile.ui.theme.GymColors
 import com.example.gymmobile.ui.theme.GymShape
-import com.example.gymmobile.ui.theme.GymTheme
 import com.example.gymmobile.ui.theme.GymType
 
 @Composable
 fun ActiveWorkoutScreen(
-    templateId: String,
+    templateId: Int,
     onBack: () -> Unit,
     onFinish: () -> Unit,
     viewModel: ActiveWorkoutViewModel = viewModel(
@@ -269,10 +267,4 @@ private fun CheckToggle(done: Boolean, onClick: () -> Unit) {
             modifier = Modifier.size(15.dp),
         )
     }
-}
-
-@Preview(widthDp = 390, heightDp = 760)
-@Composable
-private fun ActiveWorkoutScreenPreview() {
-    GymTheme { ActiveWorkoutScreen(templateId = "push-a", onBack = {}, onFinish = {}) }
 }

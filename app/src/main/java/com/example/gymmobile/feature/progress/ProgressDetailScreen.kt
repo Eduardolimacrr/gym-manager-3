@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.gymmobile.data.formatWeight
@@ -36,28 +36,31 @@ import com.example.gymmobile.ui.components.PrimaryButton
 import com.example.gymmobile.ui.components.SectionLabel
 import com.example.gymmobile.ui.components.StatCard
 import com.example.gymmobile.ui.theme.GymColors
-import com.example.gymmobile.ui.theme.GymTheme
 import com.example.gymmobile.ui.theme.GymType
 import kotlin.math.roundToInt
 
 /**
- * Detalhe de um exercício. Além de mostrar o item, deixa registrar uma carga
- * nova ali mesmo — recorde, gráfico, 1RM e histórico são recalculados na hora —
- * e lista os treinos (da outra lista) que usam o exercício.
+ * Detalhe de um exercício, buscado no banco pelo id que veio na rota. Além de
+ * mostrar o item, deixa registrar uma carga nova ali mesmo — o exercício é
+ * atualizado no banco e recorde, gráfico, 1RM e histórico são recalculados — e
+ * lista os treinos (da outra tabela) que usam o exercício.
  */
 @Composable
 fun ProgressDetailScreen(
-    exerciseId: String,
+    exerciseId: Int,
     onBack: () -> Unit,
     viewModel: ProgressDetailViewModel = viewModel(
         factory = ProgressDetailViewModel.factory(exerciseId)
     ),
 ) {
-    val exercise = viewModel.exercise
     val focusManager = LocalFocusManager.current
     var weight by rememberSaveable { mutableStateOf("") }
     var reps by rememberSaveable { mutableStateOf("") }
     var errors by remember { mutableStateOf(ProgressDetailViewModel.LoadErrors()) }
+
+    LaunchedEffect(Unit) { viewModel.carregar() }
+    if (!viewModel.loaded) return
+    val exercise = viewModel.exercise
 
     Scaffold(
         topBar = { GymTopBar(title = exercise?.name ?: "Exercício", onBack = onBack) },
@@ -190,10 +193,4 @@ fun ProgressDetailScreen(
             }
         }
     }
-}
-
-@Preview(widthDp = 390, heightDp = 760)
-@Composable
-private fun ProgressDetailScreenPreview() {
-    GymTheme { ProgressDetailScreen(exerciseId = "supino-reto", onBack = {}) }
 }

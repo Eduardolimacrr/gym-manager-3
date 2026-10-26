@@ -22,7 +22,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -32,7 +31,6 @@ import com.example.gymmobile.ui.components.PrimaryButton
 import com.example.gymmobile.ui.components.SelectableChip
 import com.example.gymmobile.ui.theme.GymColors
 import com.example.gymmobile.ui.theme.GymShape
-import com.example.gymmobile.ui.theme.GymTheme
 import com.example.gymmobile.ui.theme.GymType
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -40,13 +38,20 @@ import com.example.gymmobile.ui.theme.GymType
 fun CreateWorkoutScreen(
     onBack: () -> Unit,
     onSaved: () -> Unit,
-    viewModel: CreateWorkoutViewModel = viewModel(),
+    /** `0` = treino novo; outro valor abre a edição desse treino. */
+    templateId: Int = 0,
+    viewModel: CreateWorkoutViewModel = viewModel(
+        factory = CreateWorkoutViewModel.factory(templateId)
+    ),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val catalog = viewModel.catalog
+    val catalog by viewModel.catalog.collectAsStateWithLifecycle()
+    if (!state.loaded) return
 
     Scaffold(
-        topBar = { GymTopBar(title = "Novo treino", onBack = onBack) },
+        topBar = {
+            GymTopBar(title = if (viewModel.isEditing) "Editar treino" else "Novo treino", onBack = onBack)
+        },
         containerColor = GymColors.Bg,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { innerPadding ->
@@ -109,10 +114,7 @@ fun CreateWorkoutScreen(
             Spacer(Modifier.height(24.dp))
             PrimaryButton(
                 text = "Salvar treino",
-                onClick = {
-                    viewModel.save()
-                    onSaved()
-                },
+                onClick = { viewModel.save(onSaved) },
             )
         }
     }
@@ -147,10 +149,4 @@ private fun PickedRow(name: String, onRemove: () -> Unit) {
             modifier = Modifier.clickable(onClick = onRemove),
         )
     }
-}
-
-@Preview(widthDp = 390, heightDp = 760)
-@Composable
-private fun CreateWorkoutScreenPreview() {
-    GymTheme { CreateWorkoutScreen(onBack = {}, onSaved = {}) }
 }

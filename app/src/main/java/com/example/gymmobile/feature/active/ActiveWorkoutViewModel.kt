@@ -1,13 +1,19 @@
 package com.example.gymmobile.feature.active
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.gymmobile.data.ActiveExercise
+import com.example.gymmobile.data.AppDatabase
+import com.example.gymmobile.data.DB_TAG
 import com.example.gymmobile.data.ExerciseSet
 import com.example.gymmobile.data.FakeRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +25,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-class ActiveWorkoutViewModel(templateId: String) : ViewModel() {
+class ActiveWorkoutViewModel(
+    application: Application,
+    private val templateId: Int,
+) : AndroidViewModel(application) {
 
     /** Estado do descanso. `null` em `UiState.rest` significa overlay escondido. */
     data class RestState(val remaining: Int, val total: Int) {
@@ -33,14 +42,15 @@ class ActiveWorkoutViewModel(templateId: String) : ViewModel() {
         val rest: RestState? = null,
     )
 
-    private val templateName = FakeRepository.templateById(templateId)?.name ?: "Treino"
+    private val db = AppDatabase.getDatabase(application)
 
-    private val _exercises = MutableStateFlow(FakeRepository.activeExercisesFor(templateId))
+    private val _templateName = MutableStateFlow("Treino")
+    private val _exercises = MutableStateFlow<List<ActiveExercise>>(emptyList())
     private val _elapsedSeconds = MutableStateFlow(0)
     private val _rest = MutableStateFlow<RestState?>(null)
 
     val uiState: StateFlow<UiState> =
-        combine(_exercises, _elapsedSeconds, _rest) { exercises, elapsed, rest ->
+        combine(_templateName, _exercises, _elapsedSeconds, _rest) { templateName, exercises, elapsed, rest ->
             UiState(
                 contextLabel = buildContextLabel(templateName, exercises),
                 elapsedLabel = formatElapsed(elapsed),
@@ -51,13 +61,24 @@ class ActiveWorkoutViewModel(templateId: String) : ViewModel() {
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = UiState(
-                contextLabel = buildContextLabel(templateName, _exercises.value),
+                contextLabel = buildContextLabel(_templateName.value, _exercises.value),
                 elapsedLabel = formatElapsed(0),
                 exercises = _exercises.value,
             ),
         )
 
     init {
+        // Busca uma vez só: recarregar ao voltar para a tela apagaria as séries já marcadas.
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val template = db.workoutTemplateDao().buscarPorId(templateId) ?: return@launch
+                val exercises = FakeRepository.exercisesOf(template, db.exerciseDao().buscarTodos())
+                _templateName.value = template.name
+                _exercises.value = FakeRepository.activeExercisesFor(exercises)
+            } catch (e: Exception) {
+                Log.e(DB_TAG, "Erro ao buscar o treino $templateId", e)
+            }
+        }
         // Cronômetro da sessão. No protótipo era o texto fixo "00:04:12".
         viewModelScope.launch {
             while (isActive) {
@@ -161,8 +182,8 @@ class ActiveWorkoutViewModel(templateId: String) : ViewModel() {
     companion object {
         const val REST_SECONDS = 60
 
-        fun factory(templateId: String): ViewModelProvider.Factory = viewModelFactory {
-            initializer { ActiveWorkoutViewModel(templateId) }
+        fun factory(templateId: Int): ViewModelProvider.Factory = viewModelFactory {
+            initializer { ActiveWorkoutViewModel(this[APPLICATION_KEY]!!, templateId) }
         }
 
         internal fun formatElapsed(totalSeconds: Int): String {
