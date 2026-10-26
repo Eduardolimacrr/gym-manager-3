@@ -3,7 +3,7 @@
 Documentação do processo e das decisões do trio. Para rodar o projeto, veja o [README](README.md).
 A história dos trabalhos anteriores está em [DOCUMENTACAO.md](DOCUMENTACAO.md) (Trabalho 2).
 
-**Integrantes:** ✏️ _preencher_
+**Integrantes:** Eduardo Luiz Lima Correia - João Emanuel de Paula Vainer
 
 ▶ **[Vídeo do teste de persistência](docs/videos/t3-teste-persistencia.mp4)** (66 s): adicionar um
 exercício, fechar o app pela tela de recentes, abrir de novo e o exercício continuar lá.
